@@ -133,7 +133,7 @@ export const string = (s: string): Parser => {
   return pipe(char(s[0]), chain(string(s.substr(1))), join);
 };
 export const chainMany = (...ps: Parser[]): Parser =>
-  ps.reduce((acc, p) => chain(acc)(p));
+  ps.reduce((acc, p) => chain(p)(acc));
 
 export const surrouned = (p1: Parser, p2: Parser) => (p: Parser) =>
   chainMany(p1, p, p2);

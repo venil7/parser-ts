@@ -1,25 +1,33 @@
 import { isRight } from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
 import {
-  alt,
+  anyWord,
   between,
+  chain,
   char,
   greedy,
   join,
   keywords,
+  Parser,
   run,
   spaces,
-  string,
   surrouned,
 } from "./parser";
 
-const text = `abcfffdef(korova)`;
+// const text = `{mickey:integer}{mouse:string}`;
+const text = `abc 123 gef mickey mouse`;
 
-let old = pipe(string("abc"), alt(string("def")), alt(string("fff")), greedy);
+// {name:type}
+const token: Parser = pipe(
+  anyWord,
+  chain(char(":")),
+  chain(keywords("integer", "string")),
+  surrouned(char("{"), char("}")),
+  join,
+  greedy
+);
 
-const p = pipe(keywords("abc", "def", "fff", "(korova)"), greedy);
+const tkn = pipe(anyWord, between(spaces), greedy);
 
-const res1 = run(old, text);
-const res2 = run(p, text);
+const res1 = run(tkn, text);
 console.log(isRight(res1) ? res1.right : res1.left);
-console.log(isRight(res2) ? res2.right : res2.left);

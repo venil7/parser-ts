@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "esModuleInterop": true,
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "types": [
+      "vitest/globals"
+    ]
+  }
+}

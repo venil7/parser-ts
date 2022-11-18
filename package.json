@@ -4,13 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "vite-node ./src/index.ts"
+    "start": "vite-node ./src/index.ts",
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "fp-ts": "^2.13.1",
-    "vite-node": "^0.25.2"
+    "vite-node": "^0.25.2",
+    "vitest": "^0.25.2"
   }
 }
