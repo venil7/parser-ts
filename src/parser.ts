@@ -101,6 +101,14 @@ export const greedy = (p: Parser): Parser => {
   };
 };
 
+export const optional = (p: Parser): Parser => {
+  return (s) => {
+    const res = p(s);
+    if (isRight(res)) return res;
+    return right([s, [""]]);
+  };
+};
+
 export const map = (func: (ss: string[]) => string) =>
   rmap(([stream, chars]: [Stream, string[]]): [Stream, string[]] => [
     stream,
@@ -127,6 +135,8 @@ export const upperWord = pipe(greedy(upperAlphachar), join);
 export const anyWord = pipe(greedy(anyAlphachar), join);
 export const digits = pipe(greedy(digit), join);
 export const spaces = pipe(greedy(space), join);
+
+// export const everythingUntil =
 
 export const string = (s: string): Parser => {
   if (s.length === 1) return char(s[0]);

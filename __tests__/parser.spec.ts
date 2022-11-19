@@ -9,6 +9,8 @@ import {
   greedy,
   join,
   keywords,
+  map,
+  optional,
   predicate,
   run,
   space,
@@ -74,25 +76,37 @@ describe("complex parsers", () => {
 });
 
 describe("parser combinators", () => {
-  test(" simple word tokens ", () => {
-    const parser = word; //pipe(word, between(space), greedy);
+  test("simple word tokens", () => {
+    const parser = pipe(
+      word,
+      between(optional(space)),
+      join,
+      map(([s]) => s.trim()),
+      greedy
+    );
     const text = "mickey mouse goofey";
     expect(run(parser, text).right).toEqual(["mickey", "mouse", "goofey"]);
   });
-  test("token: {name:type}", () => {
+  test('token: {name:type} {name:type="default value"}', () => {
     const typekwd = keywords("integer", "string");
+    const sentence = pipe(word, between(optional(spaces)), greedy);
+    const defaultValue = pipe(
+      char("="),
+      chain(pipe(sentence, between(char(`"`))))
+    );
     const parser = pipe(
       word,
       chain(char(":")),
       chain(typekwd),
+      chain(optional(defaultValue)),
       surrouned(char("{"), char("}")),
       join,
       greedy
     );
-    const text = "{mickey:string}{mouse:integer}";
+    const text = `{mickey:string="hello world"}{mouse:integer}`;
     expect(run(parser, text).right).toEqual([
-      "{mickey:string}",
-      "{mouse:integer}",
+      `{mickey:string="hello world"}`,
+      `{mouse:integer}`,
     ]);
   });
 });
