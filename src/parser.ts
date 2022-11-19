@@ -1,4 +1,3 @@
-import { getMonoid } from "fp-ts/lib/Array";
 import {
   Either,
   isLeft,
@@ -8,7 +7,7 @@ import {
   right,
 } from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/function";
-import { Monoid } from "fp-ts/lib/Monoid";
+import { NonEmptyArray } from "fp-ts/lib/NonEmptyArray";
 import { Predicate } from "fp-ts/lib/Predicate";
 import { map as rmap } from "fp-ts/lib/ReaderEither";
 enum ErrorType {
@@ -42,38 +41,30 @@ const advance = ({ index, chars }: Stream): Stream => ({
   chars,
 });
 
-export const predicate =
-  <T>(m: Monoid<T>, mapf: (c: string) => T) =>
+export const toList = <T>(x: T): T[] => [x];
+
+export const getPredicate =
+  <T>(eof: T, mapf: (c: string) => T) =>
   (pred: Predicate<string>, msg = "not matching predicate"): Parser<T> =>
   (s) => {
     const { chars, index } = s;
-    if (isEof({ chars, index })) return right([s, m.empty]);
+    if (isEof({ chars, index })) return right([s, eof]);
     return pred(chars[index])
       ? right([advance({ chars, index }), mapf(chars[index])])
       : left(error(`${index}: ${msg}`));
   };
 
-export const concat =
-  <T>(m: Monoid<T>) =>
-  (r1: ParseResult<T>, r2: ParseResult<T>): ParseResult<T> => {
-    if (isLeft(r1)) return r1;
-    if (isLeft(r2)) return r2;
-    const [, s1] = r1.right;
-    const [stream, s2] = r2.right;
-    return right([stream, m.concat(s1, s2)]);
-  };
-
 export const chain =
-  <T>(m: Monoid<T>) =>
-  (p2: Parser<T>) =>
-  (p1: Parser<T>): Parser<T> => {
+  <T>(p2: Parser<T>) =>
+  (p1: Parser<T[]>): Parser<T[]> => {
     return (s) => {
       const res1 = p1(s);
       if (isLeft(res1)) return res1;
-      const [stream1] = res1.right;
+      const [stream1, t1] = res1.right;
       const res2 = p2(stream1);
       if (isLeft(res2)) return res2;
-      return concat(m)(res1, res2);
+      const [stream2, t2] = res2.right;
+      return right([stream2, [...t1, t2]]);
     };
   };
 
@@ -91,50 +82,49 @@ export const alt =
     };
   };
 
-export const greedy =
-  <T>(m: Monoid<T>) =>
-  (p: Parser<T>): Parser<T> => {
-    return (s) => {
-      let res = p(s);
-      while (isRight(res)) {
-        if (isEof(res.right[0])) break;
-        const res1 = p(res.right[0]);
-        if (isLeft(res1)) break;
-        res = concat(m)(res, res1);
-      }
-      return res;
-    };
+export const greedy = <T>(p: Parser<T>): Parser<T[]> => {
+  return (s: Stream) => {
+    let res1 = pipe(p, map(toList))(s);
+    while (isRight(res1)) {
+      const [stream1, t1] = res1.right;
+      if (isEof(stream1)) break;
+      const res2 = p(stream1);
+      if (isLeft(res2)) break;
+      const [stream2, t2] = res2.right;
+      res1 = right([stream2, [...t1, t2]]);
+    }
+    return res1;
   };
+};
 
-export const optional =
-  <T>(m: Monoid<T>) =>
+export const getOptional =
+  <T>(fallback: T) =>
   (p: Parser<T>): Parser<T> => {
     return (s) => {
       const res = p(s);
       if (isRight(res)) return res;
-      return right([s, m.empty]);
+      return right([s, fallback]);
     };
   };
 
-export const map = <TIn, TOut = TIn>(func: (ss: TIn) => TOut) =>
-  rmap(([stream, chars]: [Stream, TIn]): [Stream, TOut] => [
-    stream,
-    func(chars),
-  ]);
+export const map = <TIn, TOut>(func: (ss: TIn) => TOut) =>
+  rmap<[Stream, TIn], [Stream, TOut]>(([stream, data]) => [stream, func(data)]);
 
-export const chainMany =
-  <T>(m: Monoid<T>) =>
-  (...ps: Parser<T>[]): Parser<T> =>
-    ps.reduce((acc, p) => chain(m)(p)(acc));
+export const chainMany = <T>(...ps: NonEmptyArray<Parser<T>>): Parser<T[]> => {
+  const first: Parser<T[]> = pipe(ps[0], map(toList));
+  const [, ...rest] = ps;
+  return rest.reduce((acc, p) => chain(p)(acc), first);
+};
 
 export const surrouned =
-  <T>(m: Monoid<T>) =>
-  (p1: Parser<T>, p2: Parser<T>) =>
+  <T>(p1: Parser<any>, p2: Parser<any>) =>
   (p: Parser<T>) =>
-    chainMany(m)(p1, p, p2);
+    pipe(
+      chainMany(p1, p, p2),
+      map(([, center]) => center as T)
+    );
 
 export const between =
-  <T>(m: Monoid<T>) =>
-  (p1: Parser<T>) =>
+  <T>(p1: Parser<T>) =>
   (p: Parser<T>) =>
-    surrouned(m)(p1, p1)(p);
+    surrouned<T>(p1, p1)(p);
