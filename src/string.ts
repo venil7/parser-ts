@@ -16,10 +16,10 @@ const LETTERS = "abcdefghijklmnopqrstuvwxyx";
 const UPPER_LETTERS = LETTERS.toUpperCase();
 const DIGIT = "0123456789";
 
-export const map = P.map;
+export const map = <T>(f: (a: string[]) => T) => P.map(f);
 export const join = P.map<string[], string[]>((arr) => [arr.join("")]);
 
-export const char = (c: string): P.Parser =>
+export const char = (c: string) =>
   predicate((cc) => cc === c, `expected character "${c}"`);
 export const space = predicate((c) => /\s/g.test(c), `expected space`);
 export const alphachar = predicate(
@@ -38,9 +38,9 @@ export const anyWord = pipe(greedy(anyAlphachar), join);
 export const digits = pipe(greedy(digit), join);
 export const spaces = pipe(greedy(space), join);
 
-export const string = (s: string): P.Parser => {
+export const string = (s: string): P.Parser<string[]> => {
   if (s.length === 1) return char(s[0]);
   return pipe(char(s[0]), chain(string(s.substr(1))), join);
 };
-export const keywords = (...kw: string[]): P.Parser =>
+export const keywords = (...kw: string[]) =>
   kw.reduce((acc, k) => pipe(acc, P.alt(string(k))), string(kw[0]));

@@ -24,13 +24,13 @@ export const error = (msg: string): ParseError => ({
 });
 const eof = (): ParseError => ({ type: ErrorType.Eof, msg: "end of stream" });
 export type ParseResult<T> = Either<ParseError, [Stream, T]>;
-export type Parser<T = string[]> = (s: Stream) => ParseResult<T>;
+export type Parser<T> = (s: Stream) => ParseResult<T>;
 
 export const stream = (s: string): Stream => ({ chars: s.split(""), index: 0 });
 export const run = <T>(p: Parser<T>, s: string): Either<ParseError, T> =>
   pipe(
     p(stream(s)),
-    emap((res) => res[1])
+    emap(([, res]) => res)
   );
 
 const isEof = ({ index, chars }: Stream) => {
@@ -41,8 +41,6 @@ const advance = ({ index, chars }: Stream): Stream => ({
   index: index + 1,
   chars,
 });
-
-export const stringArrayMonoid = getMonoid<string>();
 
 export const predicate =
   <T>(m: Monoid<T>, mapf: (c: string) => T) =>

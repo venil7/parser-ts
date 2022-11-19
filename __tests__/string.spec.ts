@@ -1,5 +1,6 @@
+import { getMonoid } from "fp-ts/lib/Array";
 import { pipe } from "fp-ts/lib/function";
-import { run } from "../src/parser";
+import { alt, greedy as Pgreedy, run } from "../src/parser";
 import {
   between,
   chain,
@@ -9,6 +10,7 @@ import {
   greedy,
   join,
   keywords,
+  map,
   optional,
   predicate,
   space,
@@ -16,7 +18,6 @@ import {
   string,
   surrouned,
   word,
-  map,
 } from "../src/string";
 
 describe("simple parsers", () => {
@@ -106,6 +107,42 @@ describe("parser combinators", () => {
     expect(run(parser, text).right).toEqual([
       `{mickey:string="hello world"}`,
       `{mouse:integer}`,
+    ]);
+  });
+});
+
+describe("mapping to other types", () => {
+  type Token = { tag: "num"; value: number } | { tag: "str"; value: string };
+  const numToken = (value: number): Token => ({ tag: "num", value });
+  const strToken = (value: string): Token => ({ tag: "str", value });
+  const tokenMonoid = getMonoid<Token>(); // as unknown as Monoid<Token>;
+  test("map to int", () => {
+    const parser = pipe(
+      digits,
+      map(([s]) => [Number(s)])
+    );
+    const text = "432";
+    expect(run(parser, text).right).toEqual([432]);
+  });
+
+  test("maping to tokens", () => {
+    const str = pipe(
+      word,
+      surrouned(char("["), char("]")),
+      map((parts) => [strToken(parts[1])])
+    );
+    const num = pipe(
+      digits,
+      surrouned(char("{"), char("}")),
+      map((parts) => [numToken(Number(parts[1]))])
+    );
+    const parser = pipe(num, alt(str), Pgreedy(tokenMonoid));
+    const text = "[hello]{123}[world]{345}";
+    expect(run(parser, text).right).toEqual([
+      { tag: "str", value: "hello" },
+      { tag: "num", value: 123 },
+      { tag: "str", value: "world" },
+      { tag: "num", value: 345 },
     ]);
   });
 });
