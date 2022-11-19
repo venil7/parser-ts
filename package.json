@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "vite-node ./src/index.ts",
+    "check": "tsc --noEmit",
     "test": "vitest"
   },
   "keywords": [],
@@ -12,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "fp-ts": "^2.13.1",
+    "typescript": "^4.9.3",
     "vite-node": "^0.25.2",
     "vitest": "^0.25.2"
   }

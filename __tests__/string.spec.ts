@@ -1,6 +1,6 @@
 import { pipe } from "fp-ts/lib/function";
+import { run } from "../src/parser";
 import {
-  anyWord,
   between,
   chain,
   chainMany,
@@ -9,16 +9,15 @@ import {
   greedy,
   join,
   keywords,
-  map,
   optional,
   predicate,
-  run,
   space,
   spaces,
   string,
   surrouned,
   word,
-} from "../src/parser";
+  map,
+} from "../src/string";
 
 describe("simple parsers", () => {
   test("predicate", () => {
@@ -81,7 +80,7 @@ describe("parser combinators", () => {
       word,
       between(optional(space)),
       join,
-      map(([s]) => s.trim()),
+      map(([s]) => [s.trim()]),
       greedy
     );
     const text = "mickey mouse goofey";
